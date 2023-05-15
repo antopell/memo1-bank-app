@@ -19,11 +19,13 @@ public class AccountIntegrationServiceTest {
     }
 
     Account withdraw(Account account, Double sum) {
-        return accountService.withdraw(account.getCbu(), sum);
+        accountService.withdraw(account.getCbu(), sum);
+        return accountService.findById(account.getCbu()).get();
     }
 
     Account deposit(Account account, Double sum) {
-        return accountService.deposit(account.getCbu(), sum);
+        accountService.deposit(account.getCbu(), sum);
+        return accountService.findById(account.getCbu()).get();
     }
 
 }

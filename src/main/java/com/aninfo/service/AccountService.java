@@ -1,9 +1,9 @@
 package com.aninfo.service;
 
-import com.aninfo.exceptions.DepositNegativeSumException;
-import com.aninfo.exceptions.InsufficientFundsException;
 import com.aninfo.model.Account;
+import com.aninfo.model.Transaction;
 import com.aninfo.repository.AccountRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +16,9 @@ public class AccountService {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private TransactionService transactionService;
 
     public Account createAccount(Account account) {
         return accountRepository.save(account);
@@ -38,31 +41,35 @@ public class AccountService {
     }
 
     @Transactional
-    public Account withdraw(Long cbu, Double sum) {
+    public Transaction withdraw(Long cbu, Double sum) {
         Account account = accountRepository.findAccountByCbu(cbu);
-
-        if (account.getBalance() < sum) {
-            throw new InsufficientFundsException("Insufficient funds");
-        }
+        Transaction transaction = transactionService.createWithdraw(account, sum);
 
         account.setBalance(account.getBalance() - sum);
         accountRepository.save(account);
-
-        return account;
+        transactionService.save(transaction);
+        return transaction;
     }
 
     @Transactional
-    public Account deposit(Long cbu, Double sum) {
-
-        if (sum <= 0) {
-            throw new DepositNegativeSumException("Cannot deposit negative sums");
-        }
-
+    public Transaction deposit(Long cbu, Double sum) {
         Account account = accountRepository.findAccountByCbu(cbu);
+        Transaction transaction = transactionService.createDeposit(account, sum);
+
+        if (sum >= 2000) {
+            sum += sum * 0.1 > 500 ? 500 : sum * 0.1;
+            transaction.setAmount(sum);
+        }
         account.setBalance(account.getBalance() + sum);
         accountRepository.save(account);
+        transactionService.save(transaction);
 
-        return account;
+        return transaction;
+    }
+
+    public Account unwrapAccount(Optional<Account> optAccount, Long cbu) {
+        if (optAccount.isPresent()) return optAccount.get();
+        else throw new RuntimeException("Invalid cbu");
     }
 
 }
